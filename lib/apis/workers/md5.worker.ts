@@ -1,5 +1,5 @@
 import { createMD5 } from 'hash-wasm';
-import { WorkerLabelsEnum } from './generateIdUtils';
+import { WorkerLabelsEnum } from '../generateIdUtils';
 
 self.addEventListener('message', async (event: MessageEvent) => {
   const { label, data, index }: { label: WorkerLabelsEnum; data: ArrayBuffer[]; index: number } =

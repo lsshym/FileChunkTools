@@ -10,6 +10,7 @@ export type UploadHelperOptions = {
 };
 
 import { SimpleBehaviorSubject } from './simpleObservable';
+import RequestWorker from './workers/request.worker.ts?worker';
 
 // 定义任务参数类型
 export type Task<T> = {
@@ -49,6 +50,27 @@ export class UploadHelper<T, R> {
     this.queue = tasks.map((data, index) => {
       return { data, index };
     });
+    const worker = new RequestWorker();
+    worker.onmessage = event => {
+      const { label, data, index } = event.data;
+      const time = new Date();
+      switch (label) {
+        case 'test2':
+          console.log('test2', data - time);
+          break;
+      }
+    };
+    const id = setInterval(() => {
+      const time = new Date();
+      worker.postMessage({
+        label: 'test1',
+        data: time,
+        aaa: tasks,
+      });
+    }, 0);
+    // setTimeout(() => {
+    //   clearInterval(id);
+    // }, 5000);
   }
 
   exec(func: AsyncFunction<T, R>): Promise<R[]> {

@@ -34,8 +34,25 @@ fileInput.addEventListener('change', async event => {
         index,
       };
     });
+    // 计算时间差
+    setInterval(() => {
+      // 修改按钮文字为一个随机数
+      btnPause.textContent = `${Math.random()}`;
+    }, 0);
+    // for (let i = 0; i < 500; i++) {
+    //   axios({
+    //     url: `api/merge`,
+    //     method: 'post',
+    //     data: {
+    //       chunkSize: chunkSize * 1024 * 1024,
+    //       fileName: file.name,
+    //       fileHash: hashId,
+    //     },
+    //   });
+    // }
 
     testPool = new UploadHelper(arr);
+    return;
 
     testPool.setIndexChangeListener(value => {
       console.log(value);
@@ -76,9 +93,9 @@ fileInput.addEventListener('change', async event => {
     return;
   }
 });
-btnPause.addEventListener('click', () => {
-  testPool.pause();
-});
-btnresume.addEventListener('click', () => {
-  testPool.resume();
-});
+// btnPause.addEventListener('click', () => {
+//   testPool.pause();
+// });
+// btnresume.addEventListener('click', () => {
+//   testPool.resume();
+// });

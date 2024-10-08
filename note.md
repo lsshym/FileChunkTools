@@ -1,3 +1,5 @@
 感觉file的blob切片无法保存进indexdDb,暂时不知道原因，后续准备换一个indexdDb的库再尝试
 
-目前采用indexdDb不是最佳方案，浏览器可能会爆内存
+目前采用indexdDb不是最佳方案，浏览器可能会爆内存，可以继续使用indexdb方案，只存index不存切片
+
+频繁发送worker消息基本对性能没有任何影响
