@@ -1,12 +1,22 @@
+import { RequestWorkerLabelsEnum } from '../upload.helper.class';
+
 self.addEventListener('message', async (event: MessageEvent) => {
-  const { label, data, aaa } = event.data;
+  const {
+    label,
+    data,
+    index,
+  }: { label: RequestWorkerLabelsEnum; data: ArrayBuffer[]; index: number } = event.data;
 
   try {
     switch (label) {
-      case 'test1': {
-        // 发送当前时间
-        const time = new Date();
-        console.log('worker',aaa, time - data);
+      case RequestWorkerLabelsEnum.DOING: {
+        console.log(label, data, index);
+
+        postMessage({
+          label: RequestWorkerLabelsEnum.DONE,
+          data: 6666, // 发送错误信息字符串
+          index,
+        });
         break;
       }
       // 可以添加其他 case
@@ -14,6 +24,16 @@ self.addEventListener('message', async (event: MessageEvent) => {
         throw new Error(`Unhandled message label: ${label}`);
     }
   } catch (error) {
-    console.log(error);
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = `${error.message}\n${error.stack}`;
+    } else {
+      errorMessage = String(error);
+    }
+    postMessage({
+      label: RequestWorkerLabelsEnum.ERROR,
+      data: errorMessage, // 发送错误信息字符串
+      index,
+    });
   }
 });

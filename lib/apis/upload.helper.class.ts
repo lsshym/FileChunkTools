@@ -1,15 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 enum TaskState {
   RUNNING,
   PAUSED,
 }
 
 export type UploadHelperOptions = {
-  maxConcurrentTasks?: number; // 可选参数
+  maxConcurrentTasks?: number; // 并行数
   maxErrors?: number; // 默认最大错误数为 10
   stopOnMaxErrors?: boolean; // 是否在达到最大错误数后停止任务
 };
-
+export enum RequestWorkerLabelsEnum {
+  INIT = 'INIT',
+  DOING = 'DOING',
+  DONE = 'DONE',
+  ERROR = 'ERROR',
+}
 import { SimpleBehaviorSubject } from './simpleObservable';
+import { WebWorkerPool } from './worker.pool';
 import RequestWorker from './workers/request.worker.ts?worker';
 
 // 定义任务参数类型
@@ -36,45 +43,25 @@ export class UploadHelper<T, R> {
   private indexChangeListener: ((index: number) => void) | null = null; // 任务索引变化监听器
   private stopOnMaxErrors: boolean;
   private taskExecutor: AsyncFunction<T, R> | null = null; // 保存任务执行函数
+  private workersPool: any = null; // 保存任务执行函数
+  private workerMaxNum: any = navigator.hardwareConcurrency || 4; // 保存任务执行函数
 
   constructor(tasks: T[], options: UploadHelperOptions = {}) {
-    const {
-      maxConcurrentTasks = navigator.hardwareConcurrency || 4,
-      maxErrors = 10,
-      stopOnMaxErrors = true,
-    } = options;
+    const { maxConcurrentTasks = 10, maxErrors = 10, stopOnMaxErrors = true } = options;
     this.maxConcurrentTasks = maxConcurrentTasks;
     this.maxErrors = maxErrors;
     this.stopOnMaxErrors = stopOnMaxErrors;
-
+    this.workersPool = new WebWorkerPool(new RequestWorker(), this.workerMaxNum);
     this.queue = tasks.map((data, index) => {
+      // const { chunk, ...otherData } = data;
       return { data, index };
     });
-    const worker = new RequestWorker();
-    worker.onmessage = event => {
-      const { label, data, index } = event.data;
-      const time = new Date();
-      switch (label) {
-        case 'test2':
-          console.log('test2', data - time);
-          break;
-      }
-    };
-    const id = setInterval(() => {
-      const time = new Date();
-      worker.postMessage({
-        label: 'test1',
-        data: time,
-        aaa: tasks,
-      });
-    }, 0);
-    // setTimeout(() => {
-    //   clearInterval(id);
-    // }, 5000);
+    // this.worker = new RequestWorker();
   }
 
   exec(func: AsyncFunction<T, R>): Promise<R[]> {
     this.taskExecutor = func;
+
     return new Promise((resolve, reject) => {
       this.subscription = this.currentRunningCount.subscribe(() => {
         this.processQueue();
@@ -129,23 +116,34 @@ export class UploadHelper<T, R> {
     index: number,
     controller: AbortController,
   ): void {
-    func({ data, signal: controller.signal })
-      .then(result => {
-        this.results[index] = result;
-      })
-      .catch(error => {
-        this.results[index] = error;
-        this.errorCount++;
-        if (this.errorCount > this.maxErrors && this.stopOnMaxErrors) {
-          this.cancelAll();
-        }
-      })
-      .finally(() => {
-        this.currentRunningCount.next(this.currentRunningCount.value - 1);
-        this.controllers.delete(index);
-        this._currentTaskIndex++;
-        this.notifyIndexChange();
-      });
+    console.log(11111)
+    this.workersPool.addTask({
+      label: RequestWorkerLabelsEnum.DOING,
+      taskData: {
+        data,
+        index,
+        func,
+        controller,
+      },
+    });
+
+    // func({ data, signal: controller.signal })
+    //   .then(result => {
+    //     this.results[index] = result;
+    //   })
+    //   .catch(error => {
+    //     this.results[index] = error;
+    //     this.errorCount++;
+    //     if (this.errorCount > this.maxErrors && this.stopOnMaxErrors) {
+    //       this.cancelAll();
+    //     }
+    //   })
+    //   .finally(() => {
+    //     this.currentRunningCount.next(this.currentRunningCount.value - 1);
+    //     this.controllers.delete(index);
+    //     this._currentTaskIndex++;
+    //     this.notifyIndexChange();
+    //   });
   }
 
   // 暂停任务
